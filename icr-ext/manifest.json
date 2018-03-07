@@ -1,0 +1,23 @@
+{
+    "name": "Insert CSS Rules",
+    "short_name": "ICR",
+    "description": "Automatically inserting CSS rules to a web page.",
+    "permissions": [
+        "<all_urls>",
+        "tabs",
+        "webNavigation"
+    ],
+    "icons": {
+        "128":"icon-128.png"
+    },
+    "content_scripts": [],
+    "background": {
+        "scripts": ["background.js"]
+    },
+    "options_page": "options.html",
+    "browser_action": {
+        "default_icon": "icon-128.png"
+    },
+    "version": "1.0",
+    "manifest_version": 2
+}
