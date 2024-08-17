@@ -2,7 +2,7 @@ function ut(id, text) {
 	document.getElementById(id).innerText = text;
 }
 
-ut('span-page-title', 'Insert CSS Rules ' + chrome.app.getDetails().version);
+ut('span-page-title', 'Insert CSS Rules ' + chrome.runtime.getManifest().version);
 
 function send_options() {
 	try {

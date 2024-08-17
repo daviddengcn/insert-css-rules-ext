@@ -1,17 +1,37 @@
-var g_settings = {}
+var g_settings = {};
+
 function load(){
-	var str = localStorage['settings']
-	if (!str) {
-		str = JSON.stringify({})
-	}
-	g_settings = JSON.parse(str)
-	console.log(g_settings);
+	chrome.storage.sync.get("config", function (settings) {
+		console.log("Loaded", settings);
+		if (!settings) {
+			settings = JSON.stringify({"config":"{}"})
+		}
+		g_settings = JSON.parse(settings["config"]);
+		console.log("Using", g_settings);
+	})
 }
 load();
 
 function save() {
-  localStorage['settings'] = JSON.stringify(g_settings);
+	chrome.storage.sync.set({"config": JSON.stringify(g_settings)}, function () {
+		console.log("Saved", JSON.stringify(g_settings));
+	});
 }
+
+chrome.storage.onChanged.addListener(
+	function(changes, area) {
+		console.log(`Change in storage area: ${area}`);
+		if (area=="sync") {
+			const changedItems = Object.keys(changes);
+			for (const item of changedItems) {
+				console.log(`${item} has changed:`);
+				console.log("Old value:", changes[item].oldValue);
+				console.log("New value:", changes[item].newValue);
+				g_settings[item] = changes[item].newValue;
+			}
+		}
+	}
+)
 
 chrome.runtime.onMessage.addListener(
 	function(msg, sender, sendResponse) {
@@ -36,17 +56,21 @@ chrome.webNavigation.onCompleted.addListener(function(details) {
 		}
 		var urls = g_settings[reg];
 		if (typeof urls == "string") {
-			chrome.tabs.insertCSS(details.tabId, {
-			  code: urls,
-			  allFrames: true,
-			  runAt: "document_end"
+			chrome.scripting.insertCSS({
+				target: {
+					tabId: details.tabId,
+					allFrames: true
+				},
+				css: urls
 			});
 		} else {
 			for (i in urls) {
-				chrome.tabs.insertCSS(details.tabId, {
-				  code: urls[i] + "",
-				  allFrames: true,
-				  runAt: "document_end"
+				chrome.scripting.insertCSS({
+					target: {
+						tabId: details.tabId,
+						allFrames: true
+					},
+					css: urls[i] + ""
 				});
 			}
 		}
