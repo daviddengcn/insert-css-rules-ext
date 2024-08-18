@@ -1,78 +1,74 @@
 var g_settings = {};
+function update_settings(settings) {
+  if (!settings) {
+    settings = JSON.stringify({})
+  }
+  console.log('settings: ', settings)
+  g_settings = JSON.parse(settings);
+  console.log("g_settings: ", g_settings);
+}
 
-function load(){
-	chrome.storage.sync.get("config", function (settings) {
-		console.log("Loaded", settings);
-		if (!settings) {
-			settings = JSON.stringify({"config":"{}"})
-		}
-		g_settings = JSON.parse(settings["config"]);
-		console.log("Using", g_settings);
-	})
+function load() {
+  chrome.storage.sync.get(["settings"]).then((result) => {
+    update_settings(result.settings);
+  });
 }
 load();
 
-function save() {
-	chrome.storage.sync.set({"config": JSON.stringify(g_settings)}, function () {
-		console.log("Saved", JSON.stringify(g_settings));
-	});
+function save_settings(settings) {
+  chrome.storage.sync.set({"settings": JSON.stringify(settings)}, () => {
+    console.log("Saved", JSON.stringify(settings));
+  });
 }
 
 chrome.storage.onChanged.addListener(
-	function(changes, area) {
-		console.log(`Change in storage area: ${area}`);
-		if (area=="sync") {
-			const changedItems = Object.keys(changes);
-			for (const item of changedItems) {
-				console.log(`${item} has changed:`);
-				console.log("Old value:", changes[item].oldValue);
-				console.log("New value:", changes[item].newValue);
-				g_settings[item] = changes[item].newValue;
-			}
-		}
-	}
+  (changes, area) => {
+    console.log(`Change in storage area: ${area}`);
+    if (area=="sync") {
+      let settings = changes.settings;
+      if (settings) {
+        update_settings(settings.newValue);
+      }
+    }
+  }
 )
 
 chrome.runtime.onMessage.addListener(
-	function(msg, sender, sendResponse) {
-		if (msg.set_options) {
-			g_settings = msg.set_options.settings
-			save()
-			return
-		}
-		if (msg.get_options) {
-			sendResponse({
-				settings: g_settings
-			})
-			return
-		}
-	}
+  (msg, sender, sendResponse) => {
+    if (msg.set_options) {
+      save_settings(msg.set_options.settings);
+      return
+    }
+    if (msg.get_options) {
+      sendResponse({
+        settings: g_settings
+      })
+      return
+    }
+  }
 )
 
 chrome.webNavigation.onCompleted.addListener(function(details) {
-	for (reg in g_settings) {
-		if (!details.url.match(reg)) {
-			continue;
-		}
-		var urls = g_settings[reg];
-		if (typeof urls == "string") {
-			chrome.scripting.insertCSS({
-				target: {
-					tabId: details.tabId,
-					allFrames: true
-				},
-				css: urls
-			});
-		} else {
-			for (i in urls) {
-				chrome.scripting.insertCSS({
-					target: {
-						tabId: details.tabId,
-						allFrames: true
-					},
-					css: urls[i] + ""
-				});
-			}
-		}
-	}
+  for (reg in g_settings) {
+    if (!details.url.match(reg)) {
+      continue;
+    }
+    let insert_css = (css) => {
+      chrome.scripting.insertCSS({
+        target: {
+          tabId: details.tabId,
+          allFrames: true
+        },
+        css: css
+      });
+    };
+    let value = g_settings[reg];
+    console.log(reg, "matched, inserting: ", value);
+    if (typeof value == "string") {
+      insert_css(value);
+    } else {
+      value.forEach(insert_css);
+    }
+  }
 });
+
