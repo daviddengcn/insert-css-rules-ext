@@ -5,7 +5,6 @@
     "permissions": [
         "scripting",
         "storage",
-        "tabs",
         "webNavigation"
     ],
     "host_permissions": [
@@ -22,6 +21,6 @@
     "action": {
         "default_icon": "icon-128.png"
     },
-    "version": "1.1",
+    "version": "1.2",
     "manifest_version": 3
 }
